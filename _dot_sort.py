@@ -15,10 +15,10 @@ dtype_spec = {
     'column_15_name': str,
     'column_16_name': str
 }
-csv_filename ='D:/dfg22/Documents/MEGA/NOTE/Mechical/project_code/output_csv/5_26/1_40_2.csv'
+csv_filename ='D:/dfg22/Documents/MEGA/NOTE/Mechical/project_code/output_csv/5_26/4_40_3.csv'
 # 读取 CSV 文件
 df = pd.read_csv(csv_filename, delimiter=',', encoding='utf-8', dtype=dtype_spec)
-cap = cv.VideoCapture("D:/dfg22/Documents/MEGA/NOTE/Mechical/project_code/test_video/5_26/IMG_1892.MOV")
+cap = cv.VideoCapture("D:/dfg22/Documents/MEGA/NOTE/Mechical/project_code/test_video/5_26/IMG_1908.MOV")
 max_frame = df['Frame'].max()
 ret, frame = cap.read()
 # 设置视频的当前帧为最后一帧
@@ -121,6 +121,5 @@ while True:
     # 按 ESC 键跳出或者窗口关闭
     if key == 27 or cv.getWindowProperty('Combined Image', cv.WND_PROP_VISIBLE) < 1:  
         break
-
 cv.destroyAllWindows()
 cap.release()
