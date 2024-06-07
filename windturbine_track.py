@@ -3,6 +3,8 @@ import cv2 as cv
 import matplotlib.pyplot as plt
 import time
 import csv
+import tkinter as tk
+from tkinter import filedialog,messagebox
 # 初始化全局變量
 point1 = None
 point2 = None
@@ -10,8 +12,6 @@ rectangles = []
 cut_images = []
 min_x_values = []
 min_y_values = []
-
-
 def on_mouse(event, x, y, flags, param):
     global point1, point2, rectangles
     if event == cv.EVENT_LBUTTONDOWN:
@@ -38,13 +38,13 @@ def process_rectangles():
     cut_images.append(cut_img)
     min_x_values.append(min_x)
     min_y_values.append(min_y)
-def initialize_detector(detector_type, sift_params=None, surf_params=None):
+def initialize_detector(detector_type, sift_params=None, surf_params=None,orb_params=None):
     if detector_type == 'sift':
         return cv.xfeatures2d.SIFT_create(**(sift_params if sift_params else {}))
     elif detector_type == 'surf':
         return cv.xfeatures2d.SURF_create(**(surf_params if surf_params else {}))
     elif detector_type == 'orb':
-        return cv.ORB_create(10)
+        return cv.ORB_create(**(orb_params if surf_params else {}))
     else:
         raise ValueError("無效的特徵檢測器選擇")
 # 特徵點檢測函數
@@ -63,38 +63,48 @@ def pad_to_desired_shape(image, desired_shape, fill_value=0):
 def main():
     #設定參數
     global resized_img,first_frame
+    root = tk.Tk()
+    root.withdraw()
     sift_params = dict(nfeatures = 10,
                    nOctaveLayers = 3,
                    contrastThreshold = 0.04,
                    edgeThreshold = 20,
                    sigma =1.6 )
-    surf_params = dict(hessianThreshold= 3500,
+    surf_params = dict(hessianThreshold= 1000,
                    nOctaves= 3,
                    nOctaveLayers =3)
-# Parameters for lucas kanade optical flow
-    lk_params = dict( winSize  = (8,8),       
-                  maxLevel = 3,            
-                  criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_COUNT, 50, 0.01))  
-    circle_img_range=10  
+    orb_params = dict(nfeatures = 15,  
+                        nlevels = 6, 
+                        edgeThreshold = 11)
+    lk_params = dict( winSize  = (15,15),       
+                  maxLevel = 6,            
+                  criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_COUNT, 30, 0.01))  
+    circle_img_range=8
     desired_shape = (circle_img_range*2,circle_img_range*2, 3)
-                                          
-    cap = cv.VideoCapture('D:/dfg22/Documents/MEGA/NOTE/Mechical/project_code/test_video/5_26/IMG_1893.MOV')
-    csv_filename = 'D:/dfg22/Documents/MEGA/NOTE/Mechical/project_code/output_csv/5_26/1_40_3.csv' #csv輸出地址
+    file_path = filedialog.askopenfilename(title="選影片", filetypes=[("影片文件", "*.mp4;*.avi;*.mov;*.mkv")])
+    record_video = messagebox.askyesno("錄影", "是否要錄影？")                                  
+    cap  = cv.VideoCapture(file_path)
+     #影片輸出參數
+    width = int(cap.get(cv.CAP_PROP_FRAME_WIDTH))    
+    height = int(cap.get(cv.CAP_PROP_FRAME_HEIGHT)) 
+    fourcc = cv.VideoWriter_fourcc(*'mp4v')          
+    fps=cap.get(cv.CAP_PROP_FPS)
+    if record_video:
+            save_path = filedialog.asksaveasfilename(defaultextension=".mp4", filetypes=[("MP4 文件", "*.mp4")], title="保存影片")
+            out = cv.VideoWriter(save_path, fourcc,30, (width, height))
+    csv_filename = 'D:/dfg22/Documents/MEGA/NOTE/Mechical/project_code/output_csv/5_26/test.csv' #csv輸出地址
     feature_detector_type = input('選擇特徵檢測器 (sift, surf, orb): ').strip().lower()
 
     ret, first_frame = cap.read()
     frame_gray= cv.cvtColor(first_frame, cv.COLOR_BGR2GRAY)
     img=first_frame.copy()
     resized_img =cv.resize(img, (img.shape[1] // 2, img.shape[0] // 2))
-    #影片輸出參數
-    width = int(cap.get(cv.CAP_PROP_FRAME_WIDTH))    
-    height = int(cap.get(cv.CAP_PROP_FRAME_HEIGHT)) 
-    fourcc = cv.VideoWriter_fourcc(*'mp4v')          
-    fps=cap.get(cv.CAP_PROP_FPS)                  
+                     
 
     cv.namedWindow('image')
     cv.setMouseCallback('image',on_mouse)
     cv.imshow('image',resized_img)
+    print('按Enter確認框選區域，按esc執行光流')
     while True:
         key = cv.waitKey(1)
         if key == 13:  # Enter key
@@ -109,7 +119,7 @@ def main():
         elif key == 27:  # Esc key
             break 
     start=time.process_time()
-    detector = initialize_detector(feature_detector_type, sift_params, surf_params)
+    detector = initialize_detector(feature_detector_type, sift_params, surf_params,orb_params)
     p0 = np.zeros((0,1, 2))
     circle_img_list=[]
     with open(csv_filename, mode='w', newline='') as file:
@@ -218,28 +228,28 @@ def main():
                     (x, y), radius = cv.minEnclosingCircle(cnt)
                     center = (int(x), int(y))
                     radius_int = int(radius)
-                    cv.circle(circle_img_list[i], center, radius_int, (0, 255, 0), 1)
-                    frame=cv.circle(frame, center, radius_int, (0, 255, 0), 1)
+                    #cv.circle(circle_img_list[i], center, radius_int, (0, 255, 0), 1)
             with open(csv_filename, mode='a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerow([frame_number,circle_img_number[i], point_list[i], a_1,b_1,a-circle_img_range+x, b-circle_img_range+y, radius,'','','','','','','','','','',''])
-            frame = cv.circle(frame,(a,b),2,color[i].tolist(),-1)
+            frame = cv.circle(frame,(a,b),4,color[i].tolist(),-1)
             winSize=lk_params['winSize']
             win_x=int(winSize[0]/2)
             win_y=int(winSize[1]/2)
             tracks = cv.line(mask, (a,b),(c,d), color[i].tolist(), 1)
+            #frame = cv.circle(frame,(int(a-circle_img_range+x),int(b-circle_img_range+y)), radius_int, (0, 255, 0), 1)
             frame = cv.putText(frame,'Point'+str(i),
-                       (a,b), cv.FONT_HERSHEY_SIMPLEX,0.35, color[i].tolist(), 1, cv.LINE_AA)
+                       (a,b), cv.FONT_HERSHEY_SIMPLEX,0.5, color[i].tolist(),1, cv.LINE_AA)
             frame = cv.rectangle(frame, (c-win_x, d-win_y), (c+win_x,d+win_y), color[i].tolist(), 1) 
         combined_circle_img = np.concatenate(circle_img_list, axis=1)
         if combined_circle_img.shape[1] > 0:  # 如果 ROI 的宽度和高度都大于 0
                 cv.imshow('combined_circle_img', combined_circle_img)
-        frame = cv.putText(frame,'SIFT point: '+str(i+1)+'   '+'SIFT Parameters '+str(list(surf_params.items())),
-                       (10,20), cv.FONT_HERSHEY_SIMPLEX,0.35, (0,0,0), 1, cv.LINE_AA)
+        frame = cv.putText(frame,'SURF point: '+str(i+1)+'   '+'SURF Parameters '+str(list(surf_params.items())),
+                       (10,20), cv.FONT_HERSHEY_SIMPLEX,0.5, (0,0,0), 1, cv.LINE_AA)
         frame = cv.putText(frame,'LK Parameters '+str(list(lk_params.items())),
-                       (10,35), cv.FONT_HERSHEY_SIMPLEX,0.35, (0,0,0), 1, cv.LINE_AA)
+                       (10,40), cv.FONT_HERSHEY_SIMPLEX,0.5, (0,0,0), 1, cv.LINE_AA)
         frame = cv.putText(frame,'Frame:'+str(frame_number)+' fps:'+str(fps),
-                       (10,50), cv.FONT_HERSHEY_SIMPLEX,0.35, (0,0,0), 1, cv.LINE_AA) 
+                       (10,60), cv.FONT_HERSHEY_SIMPLEX,0.5, (0,0,0), 1, cv.LINE_AA) 
         tracks_gray = cv.cvtColor(tracks, cv.COLOR_BGR2GRAY)  
         ret, mask1  = cv.threshold(tracks_gray, 200, 255, cv.THRESH_BINARY_INV)
         path = cv.bitwise_and(tracks,tracks, mask = mask1 )
@@ -249,12 +259,13 @@ def main():
         bg2 = cv.bitwise_and(frame_gray1, frame_gray1, mask = mask2 )
         img1 = cv.add(bg1,path)
         img2 = cv.add(bg2,path)
-        combined_img1 = np.concatenate((img1,img2), axis=0)
+        combined_img1 = np.concatenate((img1,img2), axis=1)
         resized_img1 =cv.resize(combined_img1, (combined_img1.shape[1] // 2, combined_img1.shape[0] // 2))
-
-        cv.imshow('frame',resized_img1)
-    #按esc鍵停止迴圈
-        k = cv.waitKey(2) & 0xff
+        if record_video:
+                out.write(img1)
+        cv.imshow('frame',img1)
+    #按esc鍵停止迴圈 
+        k = cv.waitKey(70) & 0xff
         if k == 27:
             break
     # Now update the previous frame and previous points
@@ -262,6 +273,9 @@ def main():
         p0 = p1.reshape(-1,1,2)
     end_optical_flow=time.process_time()
     print(f'光流花費時間：{end_optical_flow-end_surf}s')
+    if record_video:
+            out.release()
+    cap.release()
     cv.destroyAllWindows()
     status = input('風扇狀態?')
     date = input('日期：(ex:05/20)')
@@ -275,6 +289,6 @@ def main():
     with open(csv_filename, mode='w', newline='',encoding='utf-8') as file:
         writer = csv.writer(file)
         writer.writerows(rows)
-    cap.release()
+    
 if __name__=='__main__':
     main()
