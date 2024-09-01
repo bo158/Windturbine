@@ -240,7 +240,8 @@ def find_circle_process(find_circle,frame_gray,circle_img_range,a,b):
             circle_img_gray = frame_gray[b-circle_img_range:b+circle_img_range, a-circle_img_range:a+circle_img_range]
             circle_img=frame_gray[b-circle_img_range:b+circle_img_range, a-circle_img_range:a+circle_img_range]
             #thresh = cv.adaptiveThreshold(circle_img_gray, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 3, 1)   # 自动阈值二值化
-            _, thresh = cv.threshold(circle_img_gray, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)  # 二值化处理
+            #_, thresh = cv.threshold(circle_img_gray, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)  # 二值化处理
+            _, thresh = cv.threshold(circle_img_gray,40, 255, cv.THRESH_BINARY)
             #thresh = cv.adaptiveThreshold(circle_img_gray, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 11, 2)
             
             thresh = cv.bitwise_not(thresh)  # 反转二值图像
@@ -298,7 +299,7 @@ def main():
                 patchSize=31,          # BRIEF 描述符的區域大小，預設值
                 fastThreshold=20       # FAST 角點檢測的閾值，預設值)
                 )
-    lk_params = dict( winSize  = (16,16),       
+    lk_params = dict( winSize  = (18,18),       
                   maxLevel = 5,            
                   criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_COUNT, 30, 0.01))  
     circle_img_range=9
@@ -367,7 +368,7 @@ def main():
     if csv_filename:
         with open(csv_filename, mode='w', newline='') as file:
             writer = csv.writer(file)
-            writer.writerow(['Frame','ROI number', 'Point', 'X Coordinate', 'Y Coordinate','fixed X Coordinate','fixed Y Coordinate','Radius','Center X','Center Y','fixed Center X','fixed Center Y','fps','Width','Height','Status','Date','Fan Speed','Video Number'])
+            writer.writerow(['Frame','ROI number', 'Point', 'X Coordinate', 'Y Coordinate','fixed X Coordinate','fixed Y Coordinate','Radius','Center X','Center Y','fixed Center X','fixed Center Y','fps','Width','Height','Status','Date','Fan Speed','Video Number','Video Path'])
     for i in range(len(cut_images)):
         cv.imshow('cut_img',cut_images[i])
         kp = detect_keypoints(detector, cut_images[i],feature_detector_type)
@@ -395,7 +396,7 @@ def main():
         if csv_filename:
             with open(csv_filename, mode='a', newline='') as file:
                     writer = csv.writer(file)
-                    writer.writerow([1,circle_img_number[i],point_list[i], a_1,b_1,a-circle_img_range+x, b-circle_img_range+y, radius,'','','','','','','','','','',''])
+                    writer.writerow([1,circle_img_number[i],point_list[i], a_1,b_1,a-circle_img_range+x, b-circle_img_range+y, radius,'','','','','','','','','','','',''])
 # Create some random colors(繪製光流軌跡線與點用)
     end_surf=time.process_time()
     surf_time = end_surf-start
@@ -438,7 +439,7 @@ def main():
             if csv_filename:
                 with open(csv_filename, mode='a', newline='') as file:
                     writer = csv.writer(file)
-                    writer.writerow([frame_number,circle_img_number[i], point_list[i], a_1,b_1,a-circle_img_range+x, b-circle_img_range+y, radius,'','','','','','','','','','',''])
+                    writer.writerow([frame_number,circle_img_number[i], point_list[i], a_1,b_1,a-circle_img_range+x, b-circle_img_range+y, radius,'','','','','','','','','','','',''])
             frame = cv.circle(frame,(a,b),4,color[i].tolist(),-1)
             winSize=lk_params['winSize']
             win_x=int(winSize[0]/2)
@@ -495,7 +496,7 @@ def main():
         with open(csv_filename, mode='r', newline='') as file:
             reader = csv.reader(file)
             rows = list(reader)
-            rows[1][12:19] = [fps,width,height,fan_status,date,fan_speed,video_number]
+            rows[1][12:20] = [fps,width,height,fan_status,date,fan_speed,video_number,video_path]
         with open(csv_filename, mode='w', newline='',encoding='utf-8') as file:
             writer = csv.writer(file)
             writer.writerows(rows)
