@@ -424,7 +424,6 @@ def main():
     circle_img_number = np.repeat(np.arange(1, len(circle_img_list) + 1), circle_img_list)
     circle_img_arry=[]
     circle_coordinates = []
-    print(p0)
     for i,old in enumerate(p0):
         a,b = old.ravel()
         a_1,b_1=a,b
@@ -442,9 +441,7 @@ def main():
     circle_coordinates_array = np.array(circle_coordinates)
     circle_coordinates_array = circle_coordinates_array.astype(np.float32)
     circle_coordinates_array  = circle_coordinates_array.reshape(-1, 1, 2)
-    if find_circle:
-        p0=circle_coordinates_array
-    print(p0)
+
 # Create some random colors(繪製光流軌跡線與點用)
     end_surf=time.process_time()
     surf_time = end_surf-start
@@ -541,8 +538,7 @@ def main():
             circle_coordinates_array = np.array(circle_coordinates)
             circle_coordinates_array = circle_coordinates_array.astype(np.float32)
             circle_coordinates_array  = circle_coordinates_array.reshape(-1, 1, 2)
-            if find_circle:
-                p0=circle_coordinates_array
+
             pbar.update(1)
     end_optical_flow=time.process_time()
     print(f'光流花費時間：{end_optical_flow-end_surf}s')
