@@ -2,7 +2,7 @@ import os
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
-from pyoma2.algorithm import FDD_algo, FSDD_algo, SSIcov_algo
+from pyoma2.algorithm import SSIcov_algo
 from pyoma2.OMA import SingleSetup
 import tkinter as tk
 from tkinter import filedialog, ttk, messagebox
@@ -16,82 +16,126 @@ class OMAApp:
         # 在視窗關閉時觸發退出程序
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
         
-        # 檔案選擇
-        self.file_label = ttk.Label(root, text="選擇 Numpy 檔案:")
-        self.file_label.grid(row=0, column=0, padx=10, pady=10)
-        self.file_button = ttk.Button(root, text="選擇檔案", command=self.select_file)
-        self.file_button.grid(row=0, column=1, padx=10, pady=10)
+        # 框架
+        self.frame = ttk.Frame(root)
+        self.frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
-        self.filepath_label = ttk.Label(root, text="未選擇檔案")  # Label to display selected file path
-        self.filepath_label.grid(row=0, column=2, padx=10, pady=10, columnspan=2, sticky="w")
+        # 檔案選擇
+        self.file_frame = ttk.Frame(self.frame)
+        self.file_frame.pack(fill=tk.X)
+        
+        self.file_label = ttk.Label(self.file_frame, text="選擇 Numpy 檔案:")
+        self.file_label.pack(side=tk.LEFT)
+        
+        self.file_button = ttk.Button(self.file_frame, text="選擇檔案", command=self.select_file)
+        self.file_button.pack(side=tk.LEFT, padx=5)
+        
+        self.filepath_label = ttk.Label(self.file_frame, text="未選擇檔案")
+        self.filepath_label.pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X)
 
         self.filepath = None
         
         # 取樣頻率
-        self.fs_label = ttk.Label(root, text="取樣頻率 (Hz):")
-        self.fs_label.grid(row=1, column=0, padx=10, pady=10)
-        self.fs_entry = ttk.Entry(root)
-        self.fs_entry.grid(row=1, column=1, padx=10, pady=10)
+        self.fs_frame = ttk.Frame(self.frame)
+        self.fs_frame.pack(fill=tk.X)
+        
+        self.fs_label = ttk.Label(self.fs_frame, text="取樣頻率 (Hz):")
+        self.fs_label.pack(side=tk.LEFT)
+        
+        self.fs_entry = ttk.Entry(self.fs_frame)
+        self.fs_entry.pack(side=tk.LEFT, padx=5)
+        self.fs_entry.insert(0, "100")
         
         # 濾波器選項
-        self.filter_label = ttk.Label(root, text="高通 / 低通頻率 (Hz):")
-        self.filter_label.grid(row=2, column=0, padx=10, pady=10)
-        self.filter_hp_entry = ttk.Entry(root)
-        self.filter_hp_entry.grid(row=2, column=1, padx=10, pady=10)
-        self.filter_lp_entry = ttk.Entry(root)
-        self.filter_lp_entry.grid(row=2, column=2, padx=10, pady=10)
+        self.filter_frame = ttk.Frame(self.frame)
+        self.filter_frame.pack(fill=tk.X)
+        
+        self.filter_label = ttk.Label(self.filter_frame, text="高通 / 低通頻率 (Hz):")
+        self.filter_label.pack(side=tk.LEFT)
+        
+        self.filter_hp_entry = ttk.Entry(self.filter_frame)
+        self.filter_hp_entry.pack(side=tk.LEFT, padx=5)
+        
+        self.filter_lp_entry = ttk.Entry(self.filter_frame)
+        self.filter_lp_entry.pack(side=tk.LEFT, padx=5)
         
         # 濾波器類型選擇
-        self.filter_type_label = ttk.Label(root, text="濾波器類型:")
-        self.filter_type_label.grid(row=3, column=0, padx=10, pady=10)
-        self.filter_type_combobox = ttk.Combobox(root, values=["不使用", "低通", "高通", "帶通"])
-        self.filter_type_combobox.grid(row=3, column=1, padx=10, pady=10)
-        self.filter_type_combobox.current(0)  # 預設選擇 "不使用"
+        self.filter_type_frame = ttk.Frame(self.frame)
+        self.filter_type_frame.pack(fill=tk.X)
+        
+        self.filter_type_label = ttk.Label(self.filter_type_frame, text="濾波器類型:")
+        self.filter_type_label.pack(side=tk.LEFT)
+        
+        self.filter_type_combobox = ttk.Combobox(self.filter_type_frame, values=["不使用", "低通", "高通", "帶通"])
+        self.filter_type_combobox.pack(side=tk.LEFT, padx=5)
+        self.filter_type_combobox.current(0)
         
         # 是否使用抽取
-        self.decimate_var = tk.IntVar()
-        self.decimate_check = ttk.Checkbutton(root, text="使用抽取", variable=self.decimate_var, command=self.toggle_decimate)
-        self.decimate_check.grid(row=4, column=0, padx=10, pady=10)
+        self.decimate_frame = ttk.Frame(self.frame)
+        self.decimate_frame.pack(fill=tk.X)
         
-        self.decimate_label = ttk.Label(root, text="抽取因子:")
-        self.decimate_label.grid(row=4, column=1, padx=10, pady=10)
-        self.decimate_entry = ttk.Entry(root)
-        self.decimate_entry.grid(row=4, column=2, padx=10, pady=10)
+        self.decimate_var = tk.IntVar()
+        self.decimate_check = ttk.Checkbutton(self.decimate_frame, text="使用抽取", variable=self.decimate_var, command=self.toggle_decimate)
+        self.decimate_check.pack(side=tk.LEFT)
+        
+        self.decimate_label = ttk.Label(self.decimate_frame, text="抽取因子:")
+        self.decimate_label.pack(side=tk.LEFT, padx=5)
+        
+        self.decimate_entry = ttk.Entry(self.decimate_frame)
+        self.decimate_entry.pack(side=tk.LEFT, padx=5)
         self.decimate_entry.config(state=tk.DISABLED)
         
         # Block row 和 Order
-        self.br_label = ttk.Label(root, text="Block Row:")
-        self.br_label.grid(row=5, column=0, padx=10, pady=10)
-        self.br_entry = ttk.Entry(root)
-        self.br_entry.grid(row=5, column=1, padx=10, pady=10)
+        self.block_order_frame = ttk.Frame(self.frame)
+        self.block_order_frame.pack(fill=tk.X)
         
-        self.order_label = ttk.Label(root, text="Order:")
-        self.order_label.grid(row=5, column=2, padx=10, pady=10)
-        self.order_entry = ttk.Entry(root)
-        self.order_entry.grid(row=5, column=3, padx=10, pady=10)
+        self.br_label = ttk.Label(self.block_order_frame, text="Block Row:")
+        self.br_label.pack(side=tk.LEFT)
         
-        # SSI-COV 頻率範圍
-        self.ssi_freq_label = ttk.Label(root, text="SSI-COV 頻率範圍 (Hz):")
-        self.ssi_freq_label.grid(row=6, column=0, padx=10, pady=10)
-        self.ssi_freq_entry_min = ttk.Entry(root)
-        self.ssi_freq_entry_min.grid(row=6, column=1, padx=10, pady=10)
-        self.ssi_freq_entry_min.insert(0, "1")  # 預設最小值
-        self.ssi_freq_entry_max = ttk.Entry(root)
-        self.ssi_freq_entry_max.grid(row=6, column=2, padx=10, pady=10)
-        self.ssi_freq_entry_max.insert(0, "15")  # 預設最大值
+        self.br_entry = ttk.Entry(self.block_order_frame)
+        self.br_entry.pack(side=tk.LEFT, padx=5)
+        self.br_entry.insert(0, "80")
         
-        # 提交按鈕
-        self.submit_button = ttk.Button(root, text="開始分析", command=self.start_analysis)
-        self.submit_button.grid(row=7, column=0, columnspan=4, padx=10, pady=10)
+        self.order_label = ttk.Label(self.block_order_frame, text="Order:")
+        self.order_label.pack(side=tk.LEFT, padx=5)
         
-        # Matplotlib 圖形顯示區域
-        self.figure, self.ax = plt.subplots()
-        self.canvas = FigureCanvasTkAgg(self.figure, master=self.root)
-        self.canvas.get_tk_widget().grid(row=8, column=0, columnspan=4, padx=10, pady=10)
+        self.order_entry = ttk.Entry(self.block_order_frame)
+        self.order_entry.pack(side=tk.LEFT, padx=5)
+        self.order_entry.insert(0, "50")
 
-        # Bind resize event
-        self.root.bind("<Configure>", self.on_resize)
-    
+        # SSI-COV 頻率範圍
+        self.ssi_freq_frame = ttk.Frame(self.frame)
+        self.ssi_freq_frame.pack(fill=tk.X)
+        
+        self.ssi_freq_label = ttk.Label(self.ssi_freq_frame, text="SSI-COV 頻率範圍 (Hz):")
+        self.ssi_freq_label.pack(side=tk.LEFT)
+        
+        self.ssi_freq_entry_min = ttk.Entry(self.ssi_freq_frame)
+        self.ssi_freq_entry_min.pack(side=tk.LEFT, padx=5)
+        self.ssi_freq_entry_min.insert(0, "1")
+        
+        self.ssi_freq_entry_max = ttk.Entry(self.ssi_freq_frame)
+        self.ssi_freq_entry_max.pack(side=tk.LEFT, padx=5)
+        self.ssi_freq_entry_max.insert(0, "15")
+        
+        # Hide Poles Checkbox
+        self.hide_poles_var = tk.IntVar()
+        self.hide_poles_check = ttk.Checkbutton(self.frame, text="隱藏不穩點", variable=self.hide_poles_var)
+        self.hide_poles_check.pack(pady=5)
+
+        # 顯示自然頻率的選項
+        self.show_freq_var = tk.IntVar()
+        self.show_freq_check = ttk.Checkbutton(self.frame, text="提取自然頻率", variable=self.show_freq_var)
+        self.show_freq_check.pack(pady=5)
+
+        # 提交按鈕
+        self.submit_button = ttk.Button(self.frame, text="開始分析", command=self.start_analysis)
+        self.submit_button.pack(pady=10)
+
+        # 顯示自然頻率的區域
+        self.freq_label = ttk.Label(self.frame, text="", wraplength=400)
+        self.freq_label.pack(pady=5)
+
     def toggle_decimate(self):
         if self.decimate_var.get():
             self.decimate_entry.config(state=tk.NORMAL)
@@ -102,7 +146,6 @@ class OMAApp:
         self.filepath = filedialog.askopenfilename(title="請選擇 .npy 檔案", filetypes=[("Numpy 檔案", "*.npy")])
         if self.filepath:
             self.filepath_label.config(text=self.filepath)  # Update label with the selected file path
-            messagebox.showinfo("檔案選擇", f"已選擇檔案: {self.filepath}")
     
     def start_analysis(self):
         # 取得參數
@@ -157,41 +200,49 @@ class OMAApp:
         setup.run_by_name("SSIcov")
         
         # 取得結果並繪圖
-        self.plot_results(ssicov)
-    
-    def plot_results(self, ssicov):
-        # 清理现有图形
-        self.ax.clear()
+        self.plot_results(ssicov,setup)
 
-        # 确保图形绘制到正确的 figure
-        plt.figure(self.figure.number)
 
-        # 取得 SSI-COV 頻率範圍
-        freq_min = float(self.ssi_freq_entry_min.get())
-        freq_max = float(self.ssi_freq_entry_max.get())
+    def plot_results(self, ssicov,setup):
+        try:
+            freq_min = float(self.ssi_freq_entry_min.get())
+            freq_max = float(self.ssi_freq_entry_max.get())
+        except ValueError:
+            messagebox.showerror("錯誤", "請輸入有效的頻率範圍")
+            return
+        hide_poles = self.hide_poles_var.get() == 1  # Check if "隱藏極點" is selected
 
-        # 繪製穩定圖
-        fig5, ax5 = ssicov.plot_STDiag(freqlim=(freq_min, freq_max), hide_poles=True)
+        fig5, ax5 = ssicov.plot_STDiag(freqlim=(freq_min, freq_max), hide_poles=hide_poles)
+        if self.show_freq_var.get():
+            freq_min = float(self.ssi_freq_entry_min.get())
+            freq_max = float(self.ssi_freq_entry_max.get())
+            setup.MPE_fromPlot("SSIcov", freqlim=(freq_min, freq_max))
+            ssi_res = dict(ssicov.result)
+            # Get the natural frequencies
+            frequencies = ssi_res.get('Fn', [])
+            # Round frequencies to the nearest integer or specified decimal places
+            frequencies = [round(freq, 2) for freq in frequencies]  # Adjust decimal places as needed
+            freq_text = "自然頻率: " + ', '.join(f"{freq:.2f} Hz" for freq in frequencies)
+            self.freq_label.config(text=freq_text)
 
-        # 更新 canvas 尺寸
-        self.figure.set_size_inches(self.canvas.get_tk_widget().winfo_width() / self.figure.dpi,
-                                    self.canvas.get_tk_widget().winfo_height() / self.figure.dpi)
+            # Plot vertical lines and labels for each natural frequency
+            for freq in frequencies:
+                ax5.axvline(x=freq, color='r', linestyle='--', linewidth=1)
+                ax5.text(freq, 0.5, f'{freq:.2f}', color='r', verticalalignment='center', horizontalalignment='right', fontsize=12, transform=ax5.get_xaxis_transform())
+        else:
+            self.freq_label.config(text='')  
+        # 清除先前的圖形
+        if hasattr(self, 'canvas'):
+            self.canvas.get_tk_widget().destroy()  # 銷毀圖形
+            del self.canvas  # 確保引用被刪除
 
-        # 更新 canvas 和 figure
-        self.canvas.figure = fig5
+        # 新建圖形並顯示
+        self.canvas = FigureCanvasTkAgg(fig5, master=self.frame)
         self.canvas.draw()
+        self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
-        # 強制刷新 Matplotlib 圖像
         self.root.update_idletasks()
-    
-    def on_resize(self, event):
-        """處理窗口大小變化事件"""
-        if self.canvas is not None:
-            # 重新配置 canvas 尺寸
-            self.figure.set_size_inches(self.canvas.get_tk_widget().winfo_width() / self.figure.dpi,
-                                        self.canvas.get_tk_widget().winfo_height() / self.figure.dpi)
-            self.canvas.draw()
-
+        self.root.update()        
     def on_closing(self):
         """當視窗關閉時結束程序"""
         if messagebox.askokcancel("退出", "你確定要退出程式嗎?"):
